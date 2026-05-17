@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "active_job"
+require "rails/railtie"
+require "rake"
 require "ollama/rails"
 
 RSpec.configure do |config|
