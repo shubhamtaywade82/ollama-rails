@@ -4,6 +4,7 @@ require "active_job"
 require "rails/railtie"
 require "rake"
 require "ollama/rails"
+require_relative "../../integration_helper"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
