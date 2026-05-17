@@ -4,14 +4,18 @@
 # Excluded by default; run with: INTEGRATION=1 bundle exec rspec spec/integration
 
 RSpec.describe "Ollama::Rails live", :integration do
-  before do |ex|
-    IntegrationHelper.skip_unless_live!(ex)
+  before do
+    reason = IntegrationHelper.skip_reason
+    skip(reason) if reason
     Ollama::Rails.reset_config!
     Ollama::Rails.configure { |c| c.base_url = IntegrationHelper::OLLAMA_URL }
   end
 
   describe Ollama::Rails::Embeddable do
-    before { |ex| IntegrationHelper.skip_unless_live!(ex, requires_embed: true) }
+    before do
+      reason = IntegrationHelper.skip_reason(requires_embed: true)
+      skip(reason) if reason
+    end
 
     it "writes a real embedding vector through the singleton client" do
       embed_model = IntegrationHelper.embed_model
@@ -33,7 +37,10 @@ RSpec.describe "Ollama::Rails live", :integration do
   end
 
   describe Ollama::Rails::TurboBroadcaster do
-    before { |ex| IntegrationHelper.skip_unless_live!(ex, requires_chat: true) }
+    before do
+      reason = IntegrationHelper.skip_reason(requires_chat: true)
+      skip(reason) if reason
+    end
 
     it "broadcasts each streamed token from a real chat" do
       received = []
