@@ -118,4 +118,65 @@ RSpec.describe Ollama::Rails do
       expect(record.embedding).to eq([0.1, 0.2])
     end
   end
+
+  describe Ollama::Rails::Jobs do
+    let(:ollama) { instance_double(Ollama::Client) }
+
+    before do
+      allow(Ollama::Rails).to receive(:client).and_return(ollama)
+    end
+
+    describe Ollama::Rails::Jobs::PullModelJob do
+      it "pulls the requested model via Ollama client" do
+        expect(ollama).to receive(:pull).with("llama3")
+        described_class.new.perform("llama3")
+      end
+    end
+
+    describe Ollama::Rails::Jobs::EmbedRecordsJob do
+      it "embeds a batch of records and returns pairs of [id, embedding]" do
+        embeds = instance_double("Ollama::Embeddings")
+        allow(ollama).to receive(:embeddings).and_return(embeds)
+        expect(embeds).to receive(:embed).with(model: "nomic-embed-text", input: "text1").and_return([0.1, 0.2])
+        expect(embeds).to receive(:embed).with(model: "nomic-embed-text", input: "text2").and_return([0.3, 0.4])
+
+        res = described_class.new.perform([[1, "text1"], [2, "text2"]], model: "nomic-embed-text")
+        expect(res).to eq([[1, [0.1, 0.2]], [2, [0.3, 0.4]]])
+      end
+    end
+  end
+
+  describe "ollama.rake tasks" do
+    let(:ollama) { instance_double(Ollama::Client) }
+
+    before(:all) do
+      Rake.application.rake_require("tasks/ollama", [File.expand_path("../../lib", __dir__)])
+      Rake::Task.define_task(:environment)
+    end
+
+    before do
+      allow(Ollama::Rails).to receive(:client).and_return(ollama)
+    end
+
+    it "pulls a model with rake ollama:pull" do
+      expect(ollama).to receive(:pull).with("qwen2")
+      expect { Rake::Task["ollama:pull"].invoke("qwen2") }.to output(/Pulling model qwen2/).to_stdout
+    ensure
+      Rake::Task["ollama:pull"].reenable
+    end
+
+    it "lists running models with rake ollama:ps" do
+      allow(ollama).to receive(:ps).and_return([{ "name" => "llama3", "size" => 123, "size_vram" => 456 }])
+      expect { Rake::Task["ollama:ps"].invoke }.to output(/llama3/).to_stdout
+    ensure
+      Rake::Task["ollama:ps"].reenable
+    end
+
+    it "lists available models with rake ollama:list" do
+      allow(ollama).to receive(:list_models).and_return([{ "name" => "llama3", "details" => { "parameter_size" => "8B" } }])
+      expect { Rake::Task["ollama:list"].invoke }.to output(/llama3/).to_stdout
+    ensure
+      Rake::Task["ollama:list"].reenable
+    end
+  end
 end
