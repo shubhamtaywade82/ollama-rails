@@ -1,0 +1,13 @@
+default: &default
+  base_url: <%= ENV.fetch("OLLAMA_BASE_URL", "http://localhost:11434") %>
+  default_model: llama3
+  request_timeout: 60
+
+development:
+  <<: *default
+
+test:
+  <<: *default
+
+production:
+  <<: *default
